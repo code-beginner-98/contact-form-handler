@@ -14,7 +14,7 @@ fn main() {
             // TODO: Handle incomplete requests/read to buffer, wait for more
             match thread {
                 Ok(mut stream) => {
-                    let Ok(msg_size) = stream.read(&mut msg) else {
+                    let Ok(_msg_size) = stream.read(&mut msg) else {
                         print!("Error: reading of incoming packet failed.");
                         return;
                     };
