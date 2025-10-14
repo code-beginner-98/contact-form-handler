@@ -95,6 +95,14 @@ fn main()
                     }
 
                     // extract body information
+                    let Ok(contact_data) = split_body_from(msg)
+                    else
+                    {
+                        // Send 400 Bad Request
+                        println!("Error: reading of body failed.");
+                        bad_request(&stream);
+                        return;
+                    };
 
                     // construct smtp from body fields
 
@@ -186,18 +194,18 @@ fn split_header(header: Vec<u8>) -> Result<(Vec<String>, HashMap<String, String>
     Ok((start_vec, header_map))
 }
 
-fn split_body(body: &[u8]) -> HashMap<String, String> {
-    let body_text = String::from_utf8_lossy(body);
-    let pairs = body_text
+fn split_body_from(msg: Vec<u8>) -> Result<HashMap<String, String>, FromUtf8Error> {
+    let body = String::from_utf8(msg)?;
+    let pairs = body
         .split("&")
         .map(|s| s.to_string())
         .collect::<Vec<String>>();
     let mut mail_map = HashMap::new();
     for pair in pairs {
-        let (key, value) = pair.split_once("=").unwrap();
+        let (key, value) = pair.split_once("=").unwrap(); // TODO: Error Handling
         mail_map.insert(key.trim().to_string(), value.trim().to_string());
     }
-    mail_map
+    Ok(mail_map)
 }
 
 struct HttpHeader {
