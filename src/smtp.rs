@@ -40,30 +40,16 @@ impl From<std::io::Error> for SmtpError
 
 impl SmtpClient {
 
-    /// binds to a free server_addr to start a smtp connection.
-    /// Returns smtp struct, which includes a std::net::TcpStream inside,
-    /// which is used to communicate.
-    /// Smtp::bind_to_server_addr lets you have control over the server_addr.
-    pub fn bind(&self) -> Result<SmtpClient, SmtpError> {
-        let listener = TcpListener::bind("127.0.0.1:0")?;
-        Ok(Self
-            {
-                server_addr: listener.local_addr()?,
-                tls: AuthenticationMethod::Tls,
-            }
-        )
-    }
-
     /// binds to a server_addr to start a smtp connection.
     /// Returns smtp struct, which includes a std::net::TcpStream inside,
     /// which is used to communicate.
     pub fn bind_to_server_addr<T>(&self, addr: T) -> Result<SmtpClient, SmtpError>
     where T: ToSocketAddrs
     {
-        let listener = TcpListener::bind(addr)?;
+        let stream = std::net::TcpStream::connect(addr)?;
         Ok(Self
             {
-                server_addr: listener.local_addr()?,
+                server_addr: stream.local_addr()?,
                 tls: AuthenticationMethod::Tls,
             }
         )
