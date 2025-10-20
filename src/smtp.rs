@@ -1,10 +1,14 @@
 use std::net::{SocketAddr, TcpListener, ToSocketAddrs};
-pub struct Smtp {
-    port: SocketAddr,
+pub struct SmtpClient {
+    server_addr: SocketAddr,
+    tls: AuthenticationMethod,
+}
+pub struct SmtpMessage
+{
     to: Option<String>,
     from: Option<String>,
+    subject: Option<String>,
     content: Option<String>,
-    tls: AuthenticationMethod,
 }
 
 pub enum AuthenticationMethod
@@ -34,39 +38,32 @@ impl From<std::io::Error> for SmtpError
     }
 }
 
-impl Smtp {
+impl SmtpClient {
 
-    /// binds to a free port to start a smtp connection.
+    /// binds to a free server_addr to start a smtp connection.
     /// Returns smtp struct, which includes a std::net::TcpStream inside,
     /// which is used to communicate.
-    /// Smtp::bind_to_port lets you have control over the port.
-    pub fn bind() -> Result<Smtp, SmtpError> {
+    /// Smtp::bind_to_server_addr lets you have control over the server_addr.
+    pub fn bind(&self) -> Result<SmtpClient, SmtpError> {
         let listener = TcpListener::bind("127.0.0.1:0")?;
         Ok(Self
             {
-                port: listener.local_addr()?,
-                to: None,
-                from: None,
-                content: None,
+                server_addr: listener.local_addr()?,
                 tls: AuthenticationMethod::Tls,
             }
         )
     }
 
-    /// binds to a free port to start a smtp connection.
+    /// binds to a server_addr to start a smtp connection.
     /// Returns smtp struct, which includes a std::net::TcpStream inside,
     /// which is used to communicate.
-    /// Smtp::bind_to_port lets you have control over the port.
-    pub fn bind_to_port<T>(addr: T) -> Result<Smtp, SmtpError>
+    pub fn bind_to_server_addr<T>(&self, addr: T) -> Result<SmtpClient, SmtpError>
     where T: ToSocketAddrs
     {
         let listener = TcpListener::bind(addr)?;
         Ok(Self
             {
-                port: listener.local_addr()?,
-                to: None,
-                from: None,
-                content: None,
+                server_addr: listener.local_addr()?,
                 tls: AuthenticationMethod::Tls,
             }
         )
@@ -75,7 +72,7 @@ impl Smtp {
     /// Performs the initial smtp handshake. This function shouldn't be used directly,
     /// as it is only partial. If using, the developer must ensure that the socket
     /// is either free'd after or a message is sent over the connection.
-    pub fn handshake(&Self) -> Result<_, SmtpError>
+    pub fn handshake(&self) -> Result<_, SmtpError>
     {
 
     }
@@ -84,7 +81,7 @@ impl Smtp {
     /// using username and password fields. This function shouldn't be used directly,
     /// as it is only partial. If using, the developer must ensure that the socket
     /// is either free'd after or a message is sent over the connection.
-    pub fn handshake_tls(&Self) -> Result<_, Error>
+    pub fn handshake_tls(&self) -> Result<_, Error>
     {
 
     }
@@ -92,7 +89,7 @@ impl Smtp {
     /// Performs the tls authentication, following a STARTTLS call. This function shouldn't be used directly,
     /// as it is only partial. If using, the developer must ensure that the socket
     /// is either free'd after or a message is sent over the connection.
-    pub fn tls_auth(&Self) -> Result<_, SmtpError>
+    pub fn tls_auth(&self) -> Result<_, SmtpError>
     {
 
     }
@@ -101,7 +98,7 @@ impl Smtp {
     /// This function shouldn't be used directly,
     /// as it is only partial. If using, the developer must ensure that the socket
     /// is either free'd after or a message is sent over the connection.
-    pub fn send_msg(&Self) -> Result<_, SmtpError>
+    pub fn send_msg(&self) -> Result<_, SmtpError>
     {
 
     }
@@ -110,8 +107,12 @@ impl Smtp {
     /// handshake, authentication and message sending.
     /// smtp::AuthenticationMethod::Tls and ::NoTls can be used to indicate
     /// whether the connection should use the STARTTLS call
-    pub fn send_email(&Self) -> Result<_, SmtpError>
+    pub fn send_email(&mut self, msg: SmtpMessage) -> Result<(), SmtpError>
     {
-
+        let port = self.bind()?;
+        self.handshake()?;
+        self.tls_auth()?;
+        self.send_msg()?;
+        Ok(())
     }
 }
