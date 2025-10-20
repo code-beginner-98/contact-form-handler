@@ -1,4 +1,4 @@
-use std::net::{SocketAddr, TcpListener, ToSocketAddrs};
+use std::{io::Read, net::{SocketAddr, TcpListener, ToSocketAddrs}};
 pub struct SmtpClient {
     server_addr: SocketAddr,
     tls: AuthenticationMethod,
@@ -46,13 +46,20 @@ impl SmtpClient {
     pub fn bind_to_server_addr<T>(&self, addr: T) -> Result<SmtpClient, SmtpError>
     where T: ToSocketAddrs
     {
-        let stream = std::net::TcpStream::connect(addr)?;
+        let mut stream = std::net::TcpStream::connect(addr)?;
+        let mut buf = [0; 512];
+        stream.read(&mut buf);
+
+        if buf[0..=2] == [2,2,0]
+        {
         Ok(Self
             {
                 server_addr: stream.local_addr()?,
                 tls: AuthenticationMethod::Tls,
             }
         )
+        }
+        else { Err(SmtpError::TcpError(String::from("smtp server didn't respond correctly"))) }
     }
 
     /// Performs the initial smtp handshake. This function shouldn't be used directly,
