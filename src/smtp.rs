@@ -67,10 +67,12 @@ impl SmtpClient {
     /// Performs the initial smtp handshake. This function shouldn't be used directly,
     /// as it is only partial. If using, the developer must ensure that the socket
     /// is either free'd after or a message is sent over the connection.
-    pub fn handshake(&self) -> Result<_, SmtpError>
+    pub fn handshake(&mut self) -> Result<(), SmtpError>
     {
         self.write_line("EHLO rustclient.local")?;
-        self.expect_line("250")?;
+        let response = self.expect_line("250").ok_or(SmtpError::TcpReadError("Error: server sent unexpected response".to_string()))?;
+        
+        Ok(())
     }
 
     /// Writes a line to the client's inner tcp stream.
@@ -84,8 +86,8 @@ impl SmtpClient {
     }
 
     /// Reads from connection and checks for reply code. Returns a None if the code isn't found and the
-    /// content of the message, if it is. Use Option::ok_or() to convert to error.
-    pub fn expect_line<S>(&self, s:S) -> Result<Option<&[u8]>, SmtpError>
+    /// content of the message, if it is. Use Option::ok_or() to convert to a Result.
+    pub fn expect_line<S>(&mut self, s:S) -> Option<[u8;512]>
     where S: ToString
     {
         let comp = s.to_string();
@@ -94,11 +96,11 @@ impl SmtpClient {
         self.stream.read(&mut buf);
         if &buf[0..=2] == comp_bytes
         {
-            return Ok(Some(&buf[2..]));
+            return Some(buf);
         }
         else 
         {
-            return Ok(None);
+            return None;
         }
     }
 
