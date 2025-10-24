@@ -1,4 +1,6 @@
 use std::{io::{Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}};
+
+use crate::error::{self, SmtpError};
 pub struct SmtpClient {
     stream: TcpStream,
     tls: AuthenticationMethod,
@@ -16,36 +18,14 @@ pub enum AuthenticationMethod
     Tls,
     NoTls,
 }
-#[derive(Debug)]
-pub enum SmtpError {
-    TcpError(String),
-    IoError(String),
-    TcpWriteError(String),
-    TcpReadError(String),
-}
 
-impl From<&str> for SmtpError
-{
-    fn from(e: &str) -> Self
-    {
-        SmtpError::TcpError(e.to_string())
-    }
-}
-
-impl From<std::io::Error> for SmtpError
-{
-    fn from(e: std::io::Error) -> Self
-    {
-        SmtpError::IoError(e.to_string())
-    }
-}
 
 impl SmtpClient {
 
     /// binds to a server_addr to start a smtp connection.
     /// Returns smtp struct, which includes a std::net::TcpStream inside,
     /// which is used to communicate.
-    pub fn bind_to_server_addr<T>(&self, addr: T) -> Result<SmtpClient, SmtpError>
+    pub fn bind_to_server_addr<T>(&self, addr: T) -> error::SmtpResult<SmtpClient>
     where T: ToSocketAddrs
     {
         let mut stream = std::net::TcpStream::connect(addr)?;
@@ -67,14 +47,16 @@ impl SmtpClient {
     /// Performs the initial smtp handshake. This function shouldn't be used directly,
     /// as it is only partial. If using, the developer must ensure that the socket
     /// is either free'd after or a message is sent over the connection.
-    pub fn handshake(&self) -> Result<_, SmtpError>
+    pub fn handshake(&mut self) -> error::SmtpResult<()>
     {
         self.write_line("EHLO rustclient.local")?;
         self.expect_line("250")?;
+
+        Ok(())
     }
 
     /// Writes a line to the client's inner tcp stream.
-    pub fn write_line<S>(&mut self, msg: S) -> Result<(), SmtpError>
+    pub fn write_line<S>(&mut self, msg: S) -> error::SmtpResult<()>
     where S: ToString
     {
         let buf = msg.to_string();
@@ -85,7 +67,7 @@ impl SmtpClient {
 
     /// Reads from connection and checks for reply code. Returns a None if the code isn't found and the
     /// content of the message, if it is. Use Option::ok_or() to convert to error.
-    pub fn expect_line<S>(&self, s:S) -> Result<Option<&[u8]>, SmtpError>
+    pub fn expect_line<S>(&mut self, s:S) -> error::SmtpResult<Option<&[u8]>>
     where S: ToString
     {
         let comp = s.to_string();
@@ -106,7 +88,7 @@ impl SmtpClient {
     /// using username and password fields. This function shouldn't be used directly,
     /// as it is only partial. If using, the developer must ensure that the socket
     /// is either free'd after or a message is sent over the connection.
-    pub fn handshake_tls(&self) -> Result<_, Error>
+    pub fn handshake_tls(&self) -> error::SmtpResult<_>
     {
 
     }
@@ -114,7 +96,7 @@ impl SmtpClient {
     /// Performs the tls authentication, following a STARTTLS call. This function shouldn't be used directly,
     /// as it is only partial. If using, the developer must ensure that the socket
     /// is either free'd after or a message is sent over the connection.
-    pub fn tls_auth(&self) -> Result<_, SmtpError>
+    pub fn tls_auth(&self) -> error::SmtpResult<_>
     {
 
     }
@@ -123,7 +105,7 @@ impl SmtpClient {
     /// This function shouldn't be used directly,
     /// as it is only partial. If using, the developer must ensure that the socket
     /// is either free'd after or a message is sent over the connection.
-    pub fn send_msg(&self) -> Result<_, SmtpError>
+    pub fn send_msg(&self) -> error::SmtpResult<_>
     {
 
     }
@@ -132,7 +114,7 @@ impl SmtpClient {
     /// handshake, authentication and message sending.
     /// smtp::AuthenticationMethod::Tls and ::NoTls can be used to indicate
     /// whether the connection should use the STARTTLS call
-    pub fn send_email(&mut self, msg: SmtpMessage) -> Result<(), SmtpError>
+    pub fn send_email(&mut self, msg: SmtpMessage) -> error::SmtpResult<()>
     {
         let port = self.bind()?;
         self.handshake()?;
