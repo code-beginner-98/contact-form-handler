@@ -5,6 +5,8 @@ use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream}
 };
 
+mod smtp;
+
 const MAX_HEADER_SIZE: usize = 512 * 8;
 
 fn main() {
@@ -88,9 +90,8 @@ fn main() {
                         return;
                     };
 
-                    // construct smtp from body fields
-                    let smtp_message = SmtpMessage::from(contact_data);
-
+                    // construct smtp to communicate
+                    let smtp = smtp::Smtp::bind();
                     // Send success response website
                     let response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello, world!".as_bytes();
                     stream.write(response).ok(); // TODO: Handle incomplete writes
@@ -231,6 +232,7 @@ enum Error {
     HttpError(String),
     Utf8Error(String),
     StringError(String),
+    SmtpError(String),
 }
 
 impl std::error::Error for Error {}
@@ -241,6 +243,7 @@ impl std::fmt::Display for Error {
             Error::HttpError(error_msg) => write!(f, "Error: HttpError: {error_msg}"),
             Error::Utf8Error(error_msg) => write!(f, "Error: HttpError: {error_msg}"),
             Error::StringError(error_msg) => write!(f, "Error: HttpError: {error_msg}"),
+            Error::SmtpError(error_msg) => write!(f, "Error: SmtpEror: {error_msg}"),
         }
     }
 }
@@ -258,15 +261,6 @@ impl From<&str> for Error
     fn from(e: &str) -> Self
     {
         Error::StringError(e.to_string())
-    }
-}
-
-struct SmtpMessage {}
-
-impl SmtpMessage {
-    fn from(http_message: HttpMessage) -> Self
-    {
-        
     }
 }
 
