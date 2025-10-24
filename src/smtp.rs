@@ -1,6 +1,6 @@
-use std::{io::Read, net::{SocketAddr, TcpListener, ToSocketAddrs}};
+use std::{io::{Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}};
 pub struct SmtpClient {
-    server_addr: SocketAddr,
+    stream: TcpStream,
     tls: AuthenticationMethod,
 }
 pub struct SmtpMessage
@@ -20,6 +20,8 @@ pub enum AuthenticationMethod
 pub enum SmtpError {
     TcpError(String),
     IoError(String),
+    TcpWriteError(String),
+    TcpReadError(String),
 }
 
 impl From<&str> for SmtpError
@@ -54,7 +56,7 @@ impl SmtpClient {
         {
         Ok(Self
             {
-                server_addr: stream.local_addr()?,
+                stream: stream,
                 tls: AuthenticationMethod::Tls,
             }
         )
@@ -67,7 +69,37 @@ impl SmtpClient {
     /// is either free'd after or a message is sent over the connection.
     pub fn handshake(&self) -> Result<_, SmtpError>
     {
+        self.write_line("EHLO rustclient.local")?;
+        self.expect_line("250")?;
+    }
 
+    /// Writes a line to the client's inner tcp stream.
+    pub fn write_line<S>(&mut self, msg: S) -> Result<(), SmtpError>
+    where S: ToString
+    {
+        let buf = msg.to_string();
+        let buf_bytes = buf.as_bytes();
+        self.stream.write(buf_bytes)?;
+        Ok(())
+    }
+
+    /// Reads from connection and checks for reply code. Returns a None if the code isn't found and the
+    /// content of the message, if it is. Use Option::ok_or() to convert to error.
+    pub fn expect_line<S>(&self, s:S) -> Result<Option<&[u8]>, SmtpError>
+    where S: ToString
+    {
+        let comp = s.to_string();
+        let comp_bytes = comp.as_bytes();
+        let mut buf = [0; 512];
+        self.stream.read(&mut buf);
+        if &buf[0..=2] == comp_bytes
+        {
+            return Ok(Some(&buf[2..]));
+        }
+        else 
+        {
+            return Ok(None);
+        }
     }
 
     /// Performs the initial smtp handshake as well as the STARTTLS call and authentication,
