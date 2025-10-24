@@ -126,18 +126,18 @@ impl SmtpClient {
     /// Performs the tls authentication, following a STARTTLS call. This function shouldn't be used directly,
     /// as it is only partial. If using, the developer must ensure that the socket
     /// is either free'd after or a message is sent over the connection.
-    pub fn tls_auth(&self) -> Result<_, SmtpError>
+    pub fn tls_auth(&self) -> Result<(), SmtpError>
     {
-
+        Ok(())
     }
 
     /// Performs message sending over smtp.
     /// This function shouldn't be used directly,
     /// as it is only partial. If using, the developer must ensure that the socket
     /// is either free'd after or a message is sent over the connection.
-    pub fn send_msg(&self) -> Result<_, SmtpError>
+    pub fn send_msg(&self) -> Result<(), SmtpError>
     {
-
+        Ok(())
     }
 
     /// Performs a full client-server roundtrip, including
