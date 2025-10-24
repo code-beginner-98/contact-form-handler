@@ -1,4 +1,4 @@
-use std::{io::{Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}};
+use std::{io::{Read, Write}, net::{TcpStream, ToSocketAddrs}};
 pub struct SmtpClient {
     stream: TcpStream,
     tls: AuthenticationMethod,
@@ -11,6 +11,7 @@ pub struct SmtpMessage
     content: Option<String>,
 }
 
+#[derive(PartialEq)]
 pub enum AuthenticationMethod
 {
     Tls,
@@ -69,8 +70,9 @@ impl SmtpClient {
     /// is either free'd after or a message is sent over the connection.
     pub fn handshake(&mut self) -> Result<(), SmtpError>
     {
-        self.write_line("EHLO rustclient.local")?;
-        let response = self.expect_line("250").ok_or(SmtpError::TcpReadError("Error: server sent unexpected response".to_string()))?;
+        let msg = "EHLO rustclient.local";
+        self.write_line(msg)?;
+        self.expect_line("250").ok_or(SmtpError::TcpReadError("Error: server sent unexpected response at: ".to_string() + msg))?;
         
         Ok(())
     }
@@ -108,9 +110,17 @@ impl SmtpClient {
     /// using username and password fields. This function shouldn't be used directly,
     /// as it is only partial. If using, the developer must ensure that the socket
     /// is either free'd after or a message is sent over the connection.
-    pub fn handshake_tls(&self) -> Result<_, Error>
+    pub fn handshake_tls(&mut self) -> Result<(), SmtpError>
     {
+        let msg = "EHLO rustclient.local";
+        self.write_line(msg)?;
+        self.expect_line("250").ok_or(SmtpError::TcpReadError("Error: server sent unexpected response at: ".to_string() + msg))?;
 
+        let msg= "STARTTLS";
+        self.write_line(msg)?;
+        self.expect_line("220").ok_or(SmtpError::TcpReadError("Error: server sent unexpected response at: ".to_string() + msg))?;
+        
+        Ok(())
     }
 
     /// Performs the tls authentication, following a STARTTLS call. This function shouldn't be used directly,
@@ -134,10 +144,18 @@ impl SmtpClient {
     /// handshake, authentication and message sending.
     /// smtp::AuthenticationMethod::Tls and ::NoTls can be used to indicate
     /// whether the connection should use the STARTTLS call
-    pub fn send_email(&mut self, msg: SmtpMessage) -> Result<(), SmtpError>
+    pub fn send_email<A>(&mut self, addr: A, msg: SmtpMessage) -> Result<(), SmtpError>
+    where A: ToSocketAddrs
     {
-        let port = self.bind()?;
-        self.handshake()?;
+        let port = self.bind_to_server_addr(addr)?;
+        if self.tls == AuthenticationMethod::Tls
+        {
+            self.handshake_tls();
+        }
+        else
+        {
+            self.handshake()?;
+        }
         self.tls_auth()?;
         self.send_msg()?;
         Ok(())
