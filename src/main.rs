@@ -5,16 +5,14 @@ use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream}
 };
 
-mod smtp;
+pub mod error;
+pub mod smtp;
 
 const MAX_HEADER_SIZE: usize = 512 * 8;
 
-fn main() {
+fn main() -> error::Result<()> {
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-    let Ok(listener) = TcpListener::bind(addr) else {
-        print!("Error: TcpListener binding failed.");
-        return;
-    };
+    let listener = TcpListener::bind(addr)?;
 
     // Spawn new thread for incoming connection
     for thread in listener.incoming() {
@@ -100,6 +98,8 @@ fn main() {
             }
         });
     }
+
+    Ok(())
 }
 
 /// Takes a http-conform header buffer and returns the position of the Empty Line "\r\n\r\n", if present.
@@ -140,7 +140,7 @@ fn split_header_from(msg: Vec<u8>) -> Result<(HttpHeader, Vec<u8>), &'static str
 }
 
 /// Takes in header slice and turns them into a key-value map for each line
-fn split_header(header: Vec<u8>) -> Result<(Vec<String>, HashMap<String, String>), Error> {
+fn split_header(header: Vec<u8>) -> error::Result<(Vec<String>, HashMap<String, String>)> {
     // convert header bytes to text
     let header_text = String::from_utf8(header)?;
 
@@ -172,7 +172,7 @@ fn split_header(header: Vec<u8>) -> Result<(Vec<String>, HashMap<String, String>
     Ok((start_vec, header_map))
 }
 
-fn split_body_from(msg: Vec<u8>) -> Result<HttpMessage, Error> {
+fn split_body_from(msg: Vec<u8>) -> error::Result<HttpMessage> {
     let body = String::from_utf8(msg)?;
     let pairs = body
         .split("&")
@@ -204,7 +204,7 @@ struct HttpMessage {
 }
 
 impl HttpMessage {
-    fn from(mail_map: HashMap<String, String>) -> Result<HttpMessage, Error> {
+    fn from(mail_map: HashMap<String, String>) -> error {
         let (from_mail, surname, last_name, subject, content) = (
             mail_map.get("email").ok_or("missing email field")?.to_string(),
             mail_map.get("surname").ok_or("missing surname field")?.to_string(),
@@ -224,43 +224,6 @@ impl HttpMessage {
                 content: content,
             }
         )
-    }
-}
-
-#[derive(Debug)]
-enum Error {
-    HttpError(String),
-    Utf8Error(String),
-    StringError(String),
-    SmtpError(String),
-}
-
-impl std::error::Error for Error {}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Error::HttpError(error_msg) => write!(f, "Error: HttpError: {error_msg}"),
-            Error::Utf8Error(error_msg) => write!(f, "Error: HttpError: {error_msg}"),
-            Error::StringError(error_msg) => write!(f, "Error: HttpError: {error_msg}"),
-            Error::SmtpError(error_msg) => write!(f, "Error: SmtpEror: {error_msg}"),
-        }
-    }
-}
-
-impl From<std::string::FromUtf8Error> for Error
-{
-    fn from(e: std::string::FromUtf8Error) -> Self
-    {
-        Error::Utf8Error(e.to_string())
-    }
-}
-
-impl From<&str> for Error
-{
-    fn from(e: &str) -> Self
-    {
-        Error::StringError(e.to_string())
     }
 }
 
