@@ -127,6 +127,8 @@ impl SmtpClient {
     /// Performs the tls authentication, following a STARTTLS call. This function shouldn't be used directly,
     /// as it is only partial. If using, the developer must ensure that the socket
     /// is either free'd after or a message is sent over the connection.
+    /// 
+    /// Use rustls here?
     pub fn tls_auth(&self) -> Result<(), SmtpError>
     {
         Ok(())
