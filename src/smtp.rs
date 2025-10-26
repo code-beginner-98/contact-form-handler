@@ -19,6 +19,7 @@ pub enum AuthenticationMethod
 }
 #[derive(Debug)]
 pub enum SmtpError {
+    SmtpError(String),
     TcpError(String),
     IoError(String),
     TcpWriteError(String),
@@ -46,7 +47,7 @@ impl SmtpClient {
     /// binds to a server_addr to start a smtp connection.
     /// Returns smtp struct, which includes a std::net::TcpStream inside,
     /// which is used to communicate.
-    pub fn bind_to_server_addr<T>(&self, addr: T) -> Result<SmtpClient, SmtpError>
+    pub fn bind_to_server_addr<T>(addr: T) -> Result<SmtpClient, SmtpError>
     where T: ToSocketAddrs
     {
         let mut stream = std::net::TcpStream::connect(addr)?;
@@ -89,20 +90,20 @@ impl SmtpClient {
 
     /// Reads from connection and checks for reply code. Returns a None if the code isn't found and the
     /// content of the message, if it is. Use Option::ok_or() to convert to a Result.
-    pub fn expect_line<S>(&mut self, s:S) -> Option<[u8;512]>
+    pub fn expect_line<S>(&mut self, expected:S) -> Result<[u8;512], SmtpError>
     where S: ToString
     {
-        let comp = s.to_string();
+        let comp = expected.to_string();
         let comp_bytes = comp.as_bytes();
         let mut buf = [0; 512];
         self.stream.read(&mut buf);
         if &buf[0..=2] == comp_bytes
         {
-            return Some(buf);
+            return Ok(buf);
         }
         else 
         {
-            return None;
+            return Err(SmtpError::SmtpError(buf.iter().collect::<String>()));
         }
     }
 

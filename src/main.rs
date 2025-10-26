@@ -8,6 +8,7 @@ use std::{
 mod smtp;
 
 const MAX_HEADER_SIZE: usize = 512 * 8;
+const MAIL_SERVER: &str = "smtp.google.com";
 
 fn main() {
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
@@ -91,8 +92,9 @@ fn main() {
                     };
 
                     // construct smtp to communicate
-                    let smtp = smtp::Smtp::bind();
-                    // Send success response website
+                    let smtp = smtp::SmtpClient::bind_to_server_addr(MAIL_SERVER);
+
+                    // Send success response website, TODO: replace with html file or similar to send correct response
                     let response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello, world!".as_bytes();
                     stream.write(response).ok(); // TODO: Handle incomplete writes
                 }
