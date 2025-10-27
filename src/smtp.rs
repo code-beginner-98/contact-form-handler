@@ -145,13 +145,11 @@ impl SmtpClient {
     }
 
     /// Performs a full client-server roundtrip, including
-    /// handshake, authentication and message sending.
+    /// handshake, authentication and message sending, from EHLO to QUIT.
     /// smtp::AuthenticationMethod::Tls and ::NoTls can be used to indicate
     /// whether the connection should use the STARTTLS call
-    pub fn send_email<A>(&mut self, addr: A, msg: SmtpMessage) -> Result<(), SmtpError>
-    where A: ToSocketAddrs
+    pub fn send_email(&mut self, msg: SmtpMessage) -> Result<(), SmtpError>
     {
-        let port = self.bind_to_server_addr(addr)?;
         if self.tls == AuthenticationMethod::Tls
         {
             self.handshake_tls();
