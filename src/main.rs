@@ -4,8 +4,14 @@ use std::{
     io::{Read, Write},
     net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream}
 };
-
 mod smtp;
+mod error;
+
+use crate::{error::error::SmtpError, smtp::smtp::{
+    SmtpClient, SmtpMessage, AuthenticationMethod
+}};
+
+
 
 const MAX_HEADER_SIZE: usize = 512 * 8;
 const MAIL_SERVER: &str = "smtp.google.com";
@@ -92,7 +98,7 @@ fn main() {
                     };
 
                     // construct smtp to communicate
-                    let smtp = smtp::SmtpClient::bind_to_server_addr(MAIL_SERVER);
+                    let smtp = SmtpClient::bind_to_server_addr(MAIL_SERVER);
 
                     // Send success response website, TODO: replace with html file or similar to send correct response
                     let response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello, world!".as_bytes();
