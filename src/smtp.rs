@@ -73,7 +73,7 @@ impl SmtpClient {
     {
         let msg = "EHLO rustclient.local";
         self.write_line(msg)?;
-        self.expect_line("250").ok_or(SmtpError::TcpReadError("Error: server sent unexpected response at: ".to_string() + msg))?;
+        self.expect_line("250")?;
         
         Ok(())
     }
@@ -115,11 +115,11 @@ impl SmtpClient {
     {
         let msg = "EHLO rustclient.local";
         self.write_line(msg)?;
-        self.expect_line("250").ok_or(SmtpError::TcpReadError("Error: server sent unexpected response at: ".to_string() + msg))?;
+        self.expect_line("250")?;
 
         let msg= "STARTTLS";
         self.write_line(msg)?;
-        self.expect_line("220").ok_or(SmtpError::TcpReadError("Error: server sent unexpected response at: ".to_string() + msg))?;
+        self.expect_line("220")?;
         
         self.tls_auth()?;
         Ok(())
