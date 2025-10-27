@@ -1,17 +1,15 @@
 use std::{
     collections::{HashMap, VecDeque},
-    fmt,
     io::{Read, Write},
     net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream}
 };
 mod smtp;
 mod error;
 
-use crate::{error::error::SmtpError, smtp::smtp::{
-    SmtpClient, SmtpMessage, AuthenticationMethod
-}};
-
-
+use crate::{
+    error::error::{Error, SmtpError},
+    smtp::smtp::{SmtpClient, SmtpMessage, AuthenticationMethod}
+};
 
 const MAX_HEADER_SIZE: usize = 512 * 8;
 const MAIL_SERVER: &str = "smtp.google.com";
@@ -235,42 +233,7 @@ impl HttpMessage {
     }
 }
 
-#[derive(Debug)]
-enum Error {
-    HttpError(String),
-    Utf8Error(String),
-    StringError(String),
-    SmtpError(String),
-}
 
-impl std::error::Error for Error {}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Error::HttpError(error_msg) => write!(f, "Error: HttpError: {error_msg}"),
-            Error::Utf8Error(error_msg) => write!(f, "Error: HttpError: {error_msg}"),
-            Error::StringError(error_msg) => write!(f, "Error: HttpError: {error_msg}"),
-            Error::SmtpError(error_msg) => write!(f, "Error: SmtpEror: {error_msg}"),
-        }
-    }
-}
-
-impl From<std::string::FromUtf8Error> for Error
-{
-    fn from(e: std::string::FromUtf8Error) -> Self
-    {
-        Error::Utf8Error(e.to_string())
-    }
-}
-
-impl From<&str> for Error
-{
-    fn from(e: &str) -> Self
-    {
-        Error::StringError(e.to_string())
-    }
-}
 
 fn bad_request(mut stream: &TcpStream) {
     let response =
