@@ -103,7 +103,7 @@ impl SmtpClient {
         }
         else 
         {
-            return Err(SmtpError::SmtpError(buf.iter().collect::<String>()));
+            Err(SmtpError::SmtpError(String::from_utf8_lossy(&buf).to_string()))
         }
     }
 
